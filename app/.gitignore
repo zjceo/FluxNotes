@@ -1,21 +1,11 @@
-./
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.development
-.env.test
-.env.production
-
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 build
 .expo
+
+# Environment variables (contiene información sensible como IPs)
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.development
-.env.test
-.env.production
