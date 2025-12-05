@@ -1,43 +1,41 @@
 import "../global.css";
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, useColorScheme } from 'react-native';
 
 export default function Layout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <View className="flex-1 bg-gray-100 dark:bg-gray-900">
-      <StatusBar style="auto" />
+    <>
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#ffffff',
+            backgroundColor: '#ffffff',
           },
-          headerTintColor: colorScheme === 'dark' ? '#ffffff' : '#000000',
+          headerShadowVisible: false,
+          headerTintColor: '#1f2937',
           headerTitleStyle: {
-            fontWeight: 'bold',
+            fontWeight: '600',
+            fontSize: 18,
           },
-          contentStyle: {
-            backgroundColor: colorScheme === 'dark' ? '#111827' : '#f3f4f6',
-          },
+          animation: 'slide_from_right',
         }}
       >
         <Stack.Screen
           name="index"
           options={{
             title: 'FluxNotes',
-            headerLargeTitle: true,
+            headerLargeTitle: false,
           }}
         />
         <Stack.Screen
           name="note/[id]"
           options={{
-            title: 'Edit Note',
-            presentation: 'modal',
+            title: 'Note',
+            presentation: 'card',
+            headerBackTitle: 'Back',
           }}
         />
       </Stack>
-    </View>
+    </>
   );
 }

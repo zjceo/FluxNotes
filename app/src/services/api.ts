@@ -4,29 +4,49 @@ import Constants from 'expo-constants';
 import { Note } from '../types';
 
 // Variables de entorno desde .env (no hardcodeadas por seguridad)
-const API_IP = process.env.EXPO_PUBLIC_API_IP || 'localhost';
+// Fallback a la IP local detectada para desarrollo Android
+const API_IP = process.env.EXPO_PUBLIC_API_IP || '192.168.1.7';
 const API_PORT = process.env.EXPO_PUBLIC_API_PORT || '3000';
 
 const getApiUrl = () => {
     if (__DEV__) {
-        if (Platform.OS === 'android') {
-            // Intenta obtener la IP automáticamente desde Expo, si no usa la del .env
-            const debuggerHost = Constants.expoConfig?.hostUri?.split(':')[0];
-            const localIp = debuggerHost || API_IP;
-            return `http://${localIp}:${API_PORT}/api`;
-        }
-        // iOS simulator
-        return `http://localhost:${API_PORT}/api`;
+        // Forzamos el uso de la IP local para evitar problemas con localhost en Android
+        console.log(`[API] Configuring API URL for ${Platform.OS}`);
+        console.log(`[API] Using IP: ${API_IP}`);
+        return `http://${API_IP}:${API_PORT}/api`;
     }
-    // Production - usa variables de entorno
+    // Production
     return `http://${API_IP}:${API_PORT}/api`;
 };
 
 const API_URL = getApiUrl();
+console.log('[API] Base URL:', API_URL);
 
 const api = axios.create({
     baseURL: API_URL,
+    timeout: 10000, // 10 segundos de timeout
 });
+
+// Interceptor para logs de error
+api.interceptors.request.use(request => {
+    console.log('[API Request]', request.method?.toUpperCase(), request.url);
+    return request;
+});
+
+api.interceptors.response.use(
+    response => response,
+    error => {
+        console.error('[API Error]', error.message);
+        if (error.response) {
+            console.error('[API Error Data]', error.response.data);
+            console.error('[API Error Status]', error.response.status);
+        } else if (error.request) {
+            console.error('[API Error Request] No response received. Is the server running?');
+            console.error('[API Error Request Info]', error.request._response);
+        }
+        return Promise.reject(error);
+    }
+);
 
 export const getNotes = async (): Promise<Note[]> => {
     const response = await api.get('/notes');
