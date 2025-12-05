@@ -5,15 +5,41 @@ import path from 'path';
 
 dotenv.config();
 
-const pool = new Pool({
+const dbConfig = {
     user: process.env.DB_USER || 'postgres',
     host: process.env.DB_HOST || 'localhost',
     database: process.env.DB_NAME || 'fluxnotes',
     password: process.env.DB_PASSWORD || '906637811',
     port: parseInt(process.env.DB_PORT || '5432'),
-});
+};
+
+const pool = new Pool(dbConfig);
 
 export const query = (text: string, params?: any[]) => pool.query(text, params);
+
+export const checkConnection = async () => {
+    try {
+        const result = await pool.query('SELECT NOW() as current_time, version() as pg_version');
+        return {
+            connected: true,
+            timestamp: result.rows[0].current_time,
+            version: result.rows[0].pg_version.split(',')[0], // Primera línea de la versión
+            database: dbConfig.database,
+            host: dbConfig.host,
+            port: dbConfig.port,
+            user: dbConfig.user,
+        };
+    } catch (err: any) {
+        return {
+            connected: false,
+            error: err.message,
+            database: dbConfig.database,
+            host: dbConfig.host,
+            port: dbConfig.port,
+            user: dbConfig.user,
+        };
+    }
+};
 
 export const initDb = async () => {
     try {

@@ -1,8 +1,8 @@
 import { View, TextInput, Pressable, Text, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { useStore } from '../src/store/useStore';
-import { exportNoteToMarkdown } from '../src/utils/exporter';
+import { useStore } from '../../src/store/useStore';
+import { exportNoteToMarkdown } from '../../src/utils/exporter';
 
 export default function NoteDetail() {
     const { id } = useLocalSearchParams();
