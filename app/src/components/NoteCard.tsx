@@ -4,16 +4,19 @@ import { Note } from '../types';
 
 interface NoteCardProps {
     note: Note;
+    index?: number;
 }
 
-export default function NoteCard({ note }: NoteCardProps) {
+export default function NoteCard({ note, index = 0 }: NoteCardProps) {
     const getPreview = () => {
         if (!note.content || note.content.trim() === '') {
-            return 'No content';
+            return 'Sin contenido';
         }
-        return note.content.length > 150 
-            ? note.content.substring(0, 150) + '...' 
-            : note.content;
+        const maxLength = 120;
+        if (note.content.length > maxLength) {
+            return note.content.substring(0, maxLength).trim() + '...';
+        }
+        return note.content;
     };
 
     const getWordCount = () => {
@@ -29,12 +32,12 @@ export default function NoteCard({ note }: NoteCardProps) {
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
 
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
+        if (diffMins < 1) return 'Ahora mismo';
+        if (diffMins < 60) return `Hace ${diffMins}m`;
+        if (diffHours < 24) return `Hace ${diffHours}h`;
+        if (diffDays < 7) return `Hace ${diffDays}d`;
         
-        return date.toLocaleDateString('en-US', { 
+        return date.toLocaleDateString('es-ES', { 
             month: 'short', 
             day: 'numeric',
             year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
@@ -43,11 +46,36 @@ export default function NoteCard({ note }: NoteCardProps) {
 
     const getColorForNote = (id: number) => {
         const colors = [
-            { bg: '#fef3c7', border: '#fbbf24', accent: '#f59e0b' },
-            { bg: '#dbeafe', border: '#60a5fa', accent: '#3b82f6' },
-            { bg: '#fce7f3', border: '#f472b6', accent: '#ec4899' },
-            { bg: '#d1fae5', border: '#34d399', accent: '#10b981' },
-            { bg: '#e9d5ff', border: '#a78bfa', accent: '#8b5cf6' },
+            { 
+                bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                solid: '#667eea',
+                light: '#f3f4ff',
+                accent: '#5568d3'
+            },
+            { 
+                bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                solid: '#f093fb',
+                light: '#fff0f7',
+                accent: '#d97dc9'
+            },
+            { 
+                bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                solid: '#4facfe',
+                light: '#f0faff',
+                accent: '#3d91e0'
+            },
+            { 
+                bg: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                solid: '#43e97b',
+                light: '#f0fff8',
+                accent: '#35ca67'
+            },
+            { 
+                bg: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                solid: '#fa709a',
+                light: '#fff9f0',
+                accent: '#e05d85'
+            },
         ];
         return colors[id % colors.length];
     };
@@ -59,47 +87,69 @@ export default function NoteCard({ note }: NoteCardProps) {
             <Pressable 
                 style={({ pressed }) => [
                     styles.card,
-                    { 
-                        backgroundColor: noteColor.bg,
-                        borderLeftColor: noteColor.border,
-                    },
                     pressed && styles.cardPressed
                 ]}
             >
-                {note.is_favorite && (
-                    <View style={[styles.favoriteIndicator, { backgroundColor: noteColor.accent }]}>
-                        <Text style={styles.favoriteStar}>★</Text>
-                    </View>
-                )}
-
-                <View style={styles.cardHeader}>
-                    <Text 
-                        style={styles.title} 
-                        numberOfLines={2}
-                    >
-                        {note.title || 'Untitled Note'}
-                    </Text>
-                </View>
-
-                <Text style={styles.preview} numberOfLines={3}>
-                    {getPreview()}
-                </Text>
-
-                <View style={styles.footer}>
-                    <View style={styles.metaInfo}>
-                        <Text style={styles.date}>
-                            {formatDate(note.updated_at)}
-                        </Text>
-                        {getWordCount() > 0 && (
-                            <>
-                                <Text style={styles.separator}>•</Text>
-                                <Text style={styles.wordCount}>
-                                    {getWordCount()} words
-                                </Text>
-                            </>
+                <View style={styles.cardContent}>
+                    {/* Header con gradiente */}
+                    <View style={[styles.cardHeader, { backgroundColor: noteColor.light }]}>
+                        <View style={styles.headerTop}>
+                            <View style={[styles.colorIndicator, { backgroundColor: noteColor.solid }]} />
+                            <Text style={styles.dateText}>{formatDate(note.updated_at)}</Text>
+                        </View>
+                        {note.is_favorite && (
+                            <View style={styles.favoriteChip}>
+                                <Text style={styles.favoriteIcon}>⭐</Text>
+                                <Text style={styles.favoriteText}>Favorita</Text>
+                            </View>
                         )}
                     </View>
-                    <Text style={styles.arrow}>→</Text>
+
+                    <View style={styles.cardBody}>
+                        <Text style={styles.title} numberOfLines={2}>
+                            {note.title || 'Nota sin título'}
+                        </Text>
+                        
+                        <Text style={styles.preview} numberOfLines={3}>
+                            {getPreview()}
+                        </Text>
+
+                        {/* Indicador de contenido largo */}
+                        {note.content.length > 120 && (
+                            <View style={styles.moreContentIndicator}>
+                                <View style={styles.dotIndicator} />
+                                <View style={styles.dotIndicator} />
+                                <View style={styles.dotIndicator} />
+                            </View>
+                        )}
+
+                        {/* Footer con stats */}
+                        <View style={styles.footer}>
+                            <View style={styles.statsContainer}>
+                                {getWordCount() > 0 && (
+                                    <View style={styles.statItem}>
+                                        <Text style={styles.statIcon}>📝</Text>
+                                        <Text style={styles.statText}>
+                                            {getWordCount()} palabras
+                                        </Text>
+                                    </View>
+                                )}
+                                {note.content && note.content.length > 0 && (
+                                    <View style={styles.statItem}>
+                                        <Text style={styles.statIcon}>✏️</Text>
+                                        <Text style={styles.statText}>
+                                            {note.content.length} caracteres
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                            
+                            <View style={[styles.openButton, { backgroundColor: noteColor.solid }]}>
+                                <Text style={styles.openButtonText}>Abrir</Text>
+                                <Text style={styles.arrowIcon}>→</Text>
+                            </View>
+                        </View>
+                    </View>
                 </View>
             </Pressable>
         </Link>
@@ -108,84 +158,149 @@ export default function NoteCard({ note }: NoteCardProps) {
 
 const styles = StyleSheet.create({
     card: {
-        borderRadius: 12,
-        padding: 16,
+        backgroundColor: '#ffffff',
+        borderRadius: 16,
         marginBottom: 12,
-        borderLeftWidth: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.06,
         shadowRadius: 8,
-        elevation: 2,
-        position: 'relative',
+        elevation: 3,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        maxHeight: 220,
     },
     cardPressed: {
-        opacity: 0.7,
+        opacity: 0.95,
         transform: [{ scale: 0.98 }],
     },
-    favoriteIndicator: {
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    favoriteStar: {
-        color: '#ffffff',
-        fontSize: 14,
-        fontWeight: '600',
+    cardContent: {
+        flex: 1,
     },
     cardHeader: {
-        marginBottom: 8,
-        paddingRight: 36,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9',
+    },
+    headerTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    colorIndicator: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    dateText: {
+        fontSize: 13,
+        color: '#64748b',
+        fontWeight: '600',
+    },
+    favoriteChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#fef3c7',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#fbbf24',
+    },
+    favoriteIcon: {
+        fontSize: 12,
+    },
+    favoriteText: {
+        fontSize: 11,
+        color: '#f59e0b',
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
+    cardBody: {
+        padding: 16,
+        maxHeight: 140,
     },
     title: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#111827',
+        color: '#0f172a',
         lineHeight: 24,
+        marginBottom: 8,
+        letterSpacing: -0.2,
     },
     preview: {
         fontSize: 14,
-        color: '#4b5563',
+        color: '#64748b',
         lineHeight: 20,
-        marginBottom: 12,
+        marginBottom: 8,
+        maxHeight: 60,
+        overflow: 'hidden',
+    },
+    moreContentIndicator: {
+        flexDirection: 'row',
+        gap: 4,
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    dotIndicator: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#94a3b8',
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#f1f5f9',
         marginTop: 4,
     },
-    metaInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    statsContainer: {
+        flex: 1,
         gap: 8,
     },
-    date: {
+    statItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    statIcon: {
         fontSize: 12,
-        color: '#6b7280',
+    },
+    statText: {
+        fontSize: 13,
+        color: '#64748b',
         fontWeight: '500',
     },
-    separator: {
-        fontSize: 12,
-        color: '#9ca3af',
+    openButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 3,
+        elevation: 2,
     },
-    wordCount: {
-        fontSize: 12,
-        color: '#6b7280',
-        fontWeight: '500',
+    openButtonText: {
+        color: '#ffffff',
+        fontSize: 13,
+        fontWeight: '700',
     },
-    arrow: {
-        fontSize: 18,
-        color: '#9ca3af',
+    arrowIcon: {
+        color: '#ffffff',
+        fontSize: 14,
+        fontWeight: '600',
     },
 });

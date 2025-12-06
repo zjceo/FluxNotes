@@ -4,13 +4,12 @@ import {
     Pressable, 
     Text, 
     Alert, 
-    KeyboardAvoidingView, 
-    Platform, 
     ScrollView,
     StyleSheet,
-    Animated
+    Animated,
+    Platform
 } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../src/store/useStore';
 import { exportNoteToMarkdown } from '../../src/utils/exporter';
@@ -30,6 +29,7 @@ export default function NoteDetail() {
     const [hasChanges, setHasChanges] = useState(false);
     
     const fadeAnim = useRef(new Animated.Value(0)).current;
+    const saveButtonScale = useRef(new Animated.Value(1)).current;
     const titleInputRef = useRef<TextInput>(null);
 
     useEffect(() => {
@@ -41,12 +41,12 @@ export default function NoteDetail() {
         
         Animated.timing(fadeAnim, {
             toValue: 1,
-            duration: 300,
+            duration: 400,
             useNativeDriver: true,
         }).start();
 
         if (isNew) {
-            setTimeout(() => titleInputRef.current?.focus(), 100);
+            setTimeout(() => titleInputRef.current?.focus(), 150);
         }
     }, [existingNote]);
 
@@ -57,6 +57,21 @@ export default function NoteDetail() {
                 content !== existingNote.content ||
                 isFavorite !== existingNote.is_favorite;
             setHasChanges(changed);
+            
+            if (changed) {
+                Animated.sequence([
+                    Animated.timing(saveButtonScale, {
+                        toValue: 1.1,
+                        duration: 150,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(saveButtonScale, {
+                        toValue: 1,
+                        duration: 150,
+                        useNativeDriver: true,
+                    }),
+                ]).start();
+            }
         } else {
             setHasChanges(title.trim() !== '' || content.trim() !== '');
         }
@@ -64,7 +79,7 @@ export default function NoteDetail() {
 
     const handleSave = async () => {
         if (!title.trim()) {
-            Alert.alert('Title Required', 'Please enter a title for your note');
+            Alert.alert('Título requerido', 'Por favor ingresa un título para tu nota');
             return;
         }
 
@@ -74,27 +89,33 @@ export default function NoteDetail() {
             } else {
                 await editNote(noteId, { title, content, is_favorite: isFavorite });
             }
-            router.back();
+            
+            // Navegar hacia atrás solo si no estamos en la pantalla principal
+            if (router.canGoBack()) {
+                router.back();
+            } else {
+                router.replace('/');
+            }
         } catch (error) {
-            Alert.alert('Error', 'Failed to save note. Please try again.');
+            Alert.alert('Error', 'No se pudo guardar la nota. Intenta nuevamente.');
         }
     };
 
     const handleDelete = async () => {
         Alert.alert(
-            'Delete Note',
-            'Are you sure you want to delete this note? This action cannot be undone.',
+            'Eliminar Nota',
+            '¿Estás seguro? Esta acción no se puede deshacer.',
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Cancelar', style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: 'Eliminar',
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             await removeNote(noteId);
                             router.back();
                         } catch (error) {
-                            Alert.alert('Error', 'Failed to delete note. Please try again.');
+                            Alert.alert('Error', 'No se pudo eliminar la nota.');
                         }
                     }
                 },
@@ -106,9 +127,9 @@ export default function NoteDetail() {
         if (existingNote) {
             try {
                 await exportNoteToMarkdown(existingNote);
-                Alert.alert('Success', 'Note exported successfully!');
+                Alert.alert('¡Éxito!', 'Nota exportada correctamente');
             } catch (error) {
-                Alert.alert('Error', 'Failed to export note. Please try again.');
+                Alert.alert('Error', 'No se pudo exportar la nota.');
             }
         }
     };
@@ -117,84 +138,88 @@ export default function NoteDetail() {
         setIsFavorite(!isFavorite);
     };
 
-    const getCharCount = () => {
-        return content.length;
-    };
-
-    const getWordCount = () => {
-        return content.trim().split(/\s+/).filter(word => word.length > 0).length;
-    };
-
-    const navigation = useRouter(); // We need navigation prop, but router works too with setOptions usually. Actually let's use useNavigation from expo-router
-    const nav = useNavigation();
-
-    useEffect(() => {
-        nav.setOptions({
-            title: isNew ? 'New Note' : 'Edit Note',
-            headerRight: () => (
-                <View style={styles.headerRight}>
-                    {!isNew && (
-                        <>
-                            <Pressable 
-                                onPress={toggleFavorite}
-                                style={({ pressed }) => [
-                                    styles.favoriteButton,
-                                    isFavorite && styles.favoriteButtonActive,
-                                    pressed && styles.headerButtonPressed
-                                ]}
-                            >
-                                <Text style={[
-                                    styles.favoriteIcon,
-                                    isFavorite && styles.favoriteIconActive
-                                ]}>
-                                    ★
-                                </Text>
-                            </Pressable>
-                            <Pressable 
-                                onPress={handleExport} 
-                                style={({ pressed }) => [
-                                    styles.headerButton,
-                                    pressed && styles.headerButtonPressed
-                                ]}
-                            >
-                                <Text style={styles.exportText}>↗</Text>
-                            </Pressable>
-                            <Pressable 
-                                onPress={handleDelete}
-                                style={({ pressed }) => [
-                                    styles.headerButton,
-                                    pressed && styles.headerButtonPressed
-                                ]}
-                            >
-                                <Text style={styles.deleteText}>🗑</Text>
-                            </Pressable>
-                        </>
-                    )}
-                    <Pressable 
-                        onPress={handleSave}
-                        style={({ pressed }) => [
-                            styles.saveButton,
-                            !hasChanges && styles.saveButtonDisabled,
-                            pressed && hasChanges && styles.saveButtonPressed
-                        ]}
-                        disabled={!hasChanges}
-                    >
-                        <Text style={[
-                            styles.saveButtonText,
-                            !hasChanges && styles.saveButtonTextDisabled
-                        ]}>
-                            Save
-                        </Text>
-                    </Pressable>
-                </View>
-            ),
-        });
-    }, [isNew, isFavorite, hasChanges, handleSave, toggleFavorite, handleExport, handleDelete]);
+    const getCharCount = () => content.length;
+    const getWordCount = () => content.trim().split(/\s+/).filter(word => word.length > 0).length;
 
     return (
         <View style={styles.container}>
-            <Stack.Screen options={{ title: isNew ? 'New Note' : 'Edit Note' }} />
-            
+            <Stack.Screen 
+                options={{
+                    headerShown: false,
+                }} 
+            />
+
+            {/* Custom Header */}
+            <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
+                <View style={styles.headerContent}>
+                    <Pressable 
+                        onPress={() => {
+                            if (router.canGoBack()) {
+                                router.back();
+                            } else {
+                                router.replace('/');
+                            }
+                        }}
+                        style={({ pressed }) => [
+                            styles.backButton,
+                            pressed && styles.backButtonPressed
+                        ]}
+                    >
+                        <Text style={styles.backIcon}>←</Text>
+                    </Pressable>
+                    
+                    <View style={styles.headerCenter}>
+                        <Text style={styles.headerTitle}>
+                            {isNew ? 'Nueva Nota' : 'Editar Nota'}
+                        </Text>
+                        {hasChanges && (
+                            <View style={styles.unsavedIndicator}>
+                                <View style={styles.unsavedDot} />
+                                <Text style={styles.unsavedText}>Sin guardar</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    <View style={styles.headerActions}>
+                        {!isNew && (
+                            <>
+                                <Pressable 
+                                    onPress={toggleFavorite}
+                                    style={({ pressed }) => [
+                                        styles.iconButton,
+                                        isFavorite && styles.iconButtonFavorite,
+                                        pressed && styles.iconButtonPressed
+                                    ]}
+                                >
+                                    <Text style={styles.iconText}>
+                                        {isFavorite ? '⭐' : '☆'}
+                                    </Text>
+                                </Pressable>
+                                <Pressable 
+                                    onPress={handleExport}
+                                    style={({ pressed }) => [
+                                        styles.iconButton,
+                                        pressed && styles.iconButtonPressed
+                                    ]}
+                                >
+                                    <Text style={styles.iconText}>↗</Text>
+                                </Pressable>
+                                <Pressable 
+                                    onPress={handleDelete}
+                                    style={({ pressed }) => [
+                                        styles.iconButton,
+                                        styles.deleteButton,
+                                        pressed && styles.iconButtonPressed
+                                    ]}
+                                >
+                                    <Text style={styles.iconText}>🗑</Text>
+                                </Pressable>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Animated.View>
+
             <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
                 <ScrollView 
                     style={styles.scrollView}
@@ -203,48 +228,80 @@ export default function NoteDetail() {
                     showsVerticalScrollIndicator={false}
                 >
                     <View style={styles.inputContainer}>
-                        <TextInput
-                            ref={titleInputRef}
-                            style={styles.titleInput}
-                            placeholder="Note Title"
-                            placeholderTextColor="#9ca3af"
-                            value={title}
-                            onChangeText={setTitle}
-                            maxLength={100}
-                        />
+                        <View style={styles.titleContainer}>
+                            <Text style={styles.titleLabel}>Título</Text>
+                            <TextInput
+                                ref={titleInputRef}
+                                style={styles.titleInput}
+                                placeholder="Escribe un título..."
+                                placeholderTextColor="#94a3b8"
+                                value={title}
+                                onChangeText={setTitle}
+                                maxLength={100}
+                            />
+                        </View>
                         
                         <View style={styles.divider} />
                         
-                        <TextInput
-                            style={styles.contentInput}
-                            placeholder="Start writing your note..."
-                            placeholderTextColor="#9ca3af"
-                            multiline
-                            textAlignVertical="top"
-                            value={content}
-                            onChangeText={setContent}
-                        />
+                        <View style={styles.contentContainer}>
+                            <Text style={styles.contentLabel}>Contenido</Text>
+                            <TextInput
+                                style={styles.contentInput}
+                                placeholder="Comienza a escribir..."
+                                placeholderTextColor="#94a3b8"
+                                multiline
+                                textAlignVertical="top"
+                                value={content}
+                                onChangeText={setContent}
+                            />
+                        </View>
                     </View>
                 </ScrollView>
 
-                <View style={styles.footer}>
-                    <View style={styles.footerLeft}>
-                        <Text style={styles.footerText}>
-                            {getWordCount()} words · {getCharCount()} characters
-                        </Text>
-                        {hasChanges && (
-                            <View style={styles.unsavedIndicator}>
-                                <View style={styles.unsavedDot} />
-                                <Text style={styles.unsavedText}>Unsaved</Text>
-                            </View>
+                {/* Stats Bar - Ahora clickeable para guardar cuando hay cambios */}
+                <Pressable 
+                    style={[
+                        styles.statsBar,
+                        hasChanges && styles.statsBarClickable
+                    ]}
+                    onPress={hasChanges ? handleSave : undefined}
+                    disabled={!hasChanges}
+                >
+                    <View style={styles.statsContent}>
+                        <View style={styles.stat}>
+                            <Text style={styles.statIcon}>📝</Text>
+                            <Text style={styles.statValue}>{getWordCount()}</Text>
+                            <Text style={styles.statLabel}>palabras</Text>
+                        </View>
+                        <View style={styles.statDivider} />
+                        <View style={styles.stat}>
+                            <Text style={styles.statIcon}>✏️</Text>
+                            <Text style={styles.statValue}>{getCharCount()}</Text>
+                            <Text style={styles.statLabel}>caracteres</Text>
+                        </View>
+                        {isFavorite && !isNew && (
+                            <>
+                                <View style={styles.statDivider} />
+                                <View style={styles.favoriteIndicator}>
+                                    <Text style={styles.favoriteIndicatorIcon}>⭐</Text>
+                                    <Text style={styles.favoriteIndicatorText}>Favorita</Text>
+                                </View>
+                            </>
                         )}
                     </View>
-                    {isFavorite && !isNew && (
-                        <View style={styles.favoriteTag}>
-                            <Text style={styles.favoriteTagText}>★ Favorite</Text>
-                        </View>
+                    
+                    {hasChanges && (
+                        <Animated.View 
+                            style={[
+                                styles.saveIndicator,
+                                { transform: [{ scale: saveButtonScale }] }
+                            ]}
+                        >
+                            <Text style={styles.saveIndicatorIcon}>✓</Text>
+                            <Text style={styles.saveIndicatorText}>Toca para guardar</Text>
+                        </Animated.View>
                     )}
-                </View>
+                </Pressable>
             </Animated.View>
         </View>
     );
@@ -253,119 +310,58 @@ export default function NoteDetail() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#f8fafc',
+    },
+    header: {
         backgroundColor: '#ffffff',
-    },
-    content: {
-        flex: 1,
-    },
-    headerRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginRight: 8,
-    },
-    headerButton: {
-        padding: 8,
-        borderRadius: 8,
-    },
-    headerButtonPressed: {
-        backgroundColor: '#f3f4f6',
-    },
-    favoriteButton: {
-        padding: 8,
-        borderRadius: 8,
-        backgroundColor: '#f3f4f6',
-    },
-    favoriteButtonActive: {
-        backgroundColor: '#fef3c7',
-    },
-    favoriteIcon: {
-        fontSize: 18,
-        color: '#d1d5db',
-    },
-    favoriteIconActive: {
-        color: '#f59e0b',
-    },
-    exportText: {
-        fontSize: 18,
-        color: '#6366f1',
-    },
-    deleteText: {
-        fontSize: 18,
-    },
-    saveButton: {
-        backgroundColor: '#6366f1',
+        paddingTop: 60,
+        paddingBottom: 16,
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 8,
-        marginLeft: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    saveButtonDisabled: {
-        backgroundColor: '#e5e7eb',
-    },
-    saveButtonPressed: {
-        backgroundColor: '#4f46e5',
-    },
-    saveButtonText: {
-        color: '#ffffff',
-        fontWeight: '600',
-        fontSize: 15,
-    },
-    saveButtonTextDisabled: {
-        color: '#9ca3af',
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        flexGrow: 1,
-    },
-    inputContainer: {
-        flex: 1,
-        padding: 20,
-    },
-    titleInput: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: '#1f2937',
-        marginBottom: 16,
-        paddingVertical: 8,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#e5e7eb',
-        marginBottom: 16,
-    },
-    contentInput: {
-        fontSize: 16,
-        color: '#4b5563',
-        lineHeight: 24,
-        minHeight: 400,
-    },
-    footer: {
+    headerContent: {
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        backgroundColor: '#f9fafb',
-        borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
     },
-    footerLeft: {
-        flexDirection: 'row',
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#f1f5f9',
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 12,
+    },
+    backButtonPressed: {
+        backgroundColor: '#e2e8f0',
+        transform: [{ scale: 0.95 }],
+    },
+    backIcon: {
+        fontSize: 24,
+        color: '#0f172a',
+        fontWeight: '600',
+    },
+    headerCenter: {
         flex: 1,
+        marginHorizontal: 16,
+        alignItems: 'center',
     },
-    footerText: {
-        fontSize: 13,
-        color: '#6b7280',
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0f172a',
     },
     unsavedIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
+        marginTop: 4,
     },
     unsavedDot: {
         width: 6,
@@ -376,17 +372,176 @@ const styles = StyleSheet.create({
     unsavedText: {
         fontSize: 12,
         color: '#f59e0b',
+        fontWeight: '600',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    iconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#f1f5f9',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iconButtonFavorite: {
+        backgroundColor: '#fef3c7',
+    },
+    iconButtonPressed: {
+        opacity: 0.7,
+        transform: [{ scale: 0.9 }],
+    },
+    deleteButton: {
+        backgroundColor: '#fee2e2',
+    },
+    iconText: {
+        fontSize: 18,
+    },
+    content: {
+        flex: 1,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        paddingBottom: 20,
+    },
+    inputContainer: {
+        flex: 1,
+        padding: 20,
+    },
+    titleContainer: {
+        marginBottom: 24,
+    },
+    titleLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#64748b',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 8,
+    },
+    titleInput: {
+        fontSize: 32,
+        fontWeight: '800',
+        color: '#0f172a',
+        paddingVertical: 12,
+        letterSpacing: -0.5,
+    },
+    divider: {
+        height: 2,
+        backgroundColor: '#e2e8f0',
+        marginBottom: 24,
+    },
+    contentContainer: {
+        flex: 1,
+    },
+    contentLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#64748b',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 12,
+    },
+    contentInput: {
+        fontSize: 17,
+        color: '#334155',
+        lineHeight: 28,
+        minHeight: 400,
+    },
+    statsBar: {
+        flexDirection: 'column',
+        backgroundColor: '#ffffff',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 4,
+        gap: 10,
+    },
+    statsBarClickable: {
+        backgroundColor: '#ecfdf5',
+        borderTopColor: '#10b981',
+        borderTopWidth: 2,
+    },
+    statsContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+    },
+    stat: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    statIcon: {
+        fontSize: 16,
+    },
+    statValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#0f172a',
+    },
+    statLabel: {
+        fontSize: 14,
+        color: '#64748b',
         fontWeight: '500',
     },
-    favoriteTag: {
+    statDivider: {
+        width: 1,
+        height: 20,
+        backgroundColor: '#e2e8f0',
+    },
+    favoriteIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         backgroundColor: '#fef3c7',
         paddingHorizontal: 10,
-        paddingVertical: 4,
+        paddingVertical: 6,
         borderRadius: 8,
     },
-    favoriteTagText: {
-        fontSize: 12,
+    favoriteIndicatorIcon: {
+        fontSize: 14,
+    },
+    favoriteIndicatorText: {
+        fontSize: 13,
         color: '#f59e0b',
-        fontWeight: '600',
+        fontWeight: '700',
+    },
+    saveIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        backgroundColor: '#10b981',
+        borderRadius: 14,
+        alignSelf: 'stretch',
+        shadowColor: '#10b981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    saveIndicatorIcon: {
+        fontSize: 20,
+        color: '#ffffff',
+    },
+    saveIndicatorText: {
+        fontSize: 16,
+        color: '#ffffff',
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
 });
