@@ -20,6 +20,13 @@ export default function Layout() {
           animation: 'slide_from_right',
         }}
       >
+        {/* CRÍTICO: Ocultar el drawer para que funcione correctamente */}
+        <Stack.Screen
+          name="(drawer)"
+          options={{
+            headerShown: false,
+          }}
+        />
         <Stack.Screen
           name="note/[id]"
           options={{

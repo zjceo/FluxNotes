@@ -1,4 +1,4 @@
-import { View, Text, FlatList, Pressable, RefreshControl, StyleSheet, Animated, TextInput } from 'react-native';
+import { View, Text, FlatList, Pressable, RefreshControl, StyleSheet, Animated, TextInput, Platform } from 'react-native';
 import { Link, Stack, useNavigation } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { DrawerActions } from '@react-navigation/native';
@@ -130,6 +130,7 @@ export default function Home() {
                 style={styles.content}
             />
 
+            {/* Botón flotante */}
             <Link href="/note/new" asChild>
                 <Pressable 
                     style={({ pressed }) => [
@@ -161,6 +162,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 3,
+        zIndex: 1,
     },
     headerTop: {
         flexDirection: 'row',
@@ -231,7 +233,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         padding: 20,
-        paddingBottom: 120,
+        paddingBottom: 100,
     },
     emptyContainer: {
         flex: 1,
@@ -312,16 +314,17 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.4,
         shadowRadius: 16,
-        elevation: 10,
+        elevation: 15,
+        zIndex: 9999,
     },
     floatingAddButtonPressed: {
         backgroundColor: '#4f46e5',
         transform: [{ scale: 0.92 }],
     },
     floatingAddIcon: {
-        color: '#ffffff',
-        fontSize: 36,
+        color: '#ad1e1eff',
+        fontSize: 100,
         fontWeight: '300',
-        lineHeight: 36,
+        lineHeight: 100,
     },
 });
