@@ -21,13 +21,6 @@ export default function Layout() {
         }}
       >
         <Stack.Screen
-          name="index"
-          options={{
-            title: 'FluxNotes',
-            headerLargeTitle: false,
-          }}
-        />
-        <Stack.Screen
           name="note/[id]"
           options={{
             title: 'Note',
