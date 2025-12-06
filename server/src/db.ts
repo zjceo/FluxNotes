@@ -9,7 +9,7 @@ const dbConfig = {
     user: process.env.DB_USER || 'postgres',
     host: process.env.DB_HOST || 'localhost',
     database: process.env.DB_NAME || 'fluxnotes',
-    password: process.env.DB_PASSWORD || '906637811',
+    password: process.env.DB_PASSWORD || '', // ⚠️ Configura tu password en el archivo .env
     port: parseInt(process.env.DB_PORT || '5432'),
 };
 
